@@ -36,7 +36,7 @@ class InstagramScraper(object):
                             login_user=None, login_pass=None,
                             destination='./', retain_username=False,
                             quiet=False, maximum=0, media_metadata=False, latest=False,
-                            media_types=['image', 'video', 'story'], tag=False)
+                            media_types=['image', 'video', 'story'], tag=False, location=False)
 
         allowed_attr = list(default_attr.keys())
         default_attr.update(kwargs)
