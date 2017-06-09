@@ -99,7 +99,7 @@ OPTIONS
 
 --tag               Scrapes the specified hashtag for media.
 
---location          Scrapes the specified location for media.
+--location          Scrapes the specified instagram location-id for media.
 
 ```
 
