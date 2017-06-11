@@ -38,7 +38,7 @@ class InstagramScraper(object):
                             destination='./', retain_username=False,
                             quiet=False, maximum=0, media_metadata=False, latest=False,
                             media_types=['image', 'video', 'story'], tag=False, location=False,
-                            search_location=False)
+                            search_location=False, comments=False)
 
         allowed_attr = list(default_attr.keys())
         default_attr.update(kwargs)
@@ -226,7 +226,10 @@ class InstagramScraper(object):
                     future = executor.submit(self.download, item, dst)
                     future_to_item[future] = item
 
-                if self.media_metadata:
+                if self.comments:
+                    item['comments']['data'] = list(self.query_comments_gen(item['code']))
+
+                if self.media_metadata or self.comments:
                     self.posts.append(item)
 
                 iter = iter + 1
@@ -242,7 +245,7 @@ class InstagramScraper(object):
                         self.logger.warning(
                             'Media for {0} at {1} generated an exception: {2}'.format(value, item['urls'], future.exception()))
 
-            if self.media_metadata and self.posts:
+            if (self.media_metadata or self.comments) and self.posts:
                 self.save_json(self.posts, '{0}/{1}.json'.format(dst, value))
 
     def scrape_hashtag(self):
@@ -284,7 +287,7 @@ class InstagramScraper(object):
                         self.logger.warning(
                             'Media at {0} generated an exception: {1}'.format(item['urls'], future.exception()))
 
-            if self.media_metadata and self.posts:
+            if (self.media_metadata or self.comments) and self.posts:
                 self.save_json(self.posts, '{0}/{1}.json'.format(dst, username))
 
         self.logout()
@@ -327,7 +330,10 @@ class InstagramScraper(object):
                 future = executor.submit(self.download, item, dst)
                 future_to_item[future] = item
 
-            if self.media_metadata:
+            if self.comments:
+                item['comments']['data'] = list(self.query_comments_gen(item['code']))
+
+            if self.media_metadata or self.comments:
                 self.posts.append(item)
 
             iter = iter + 1
@@ -466,21 +472,55 @@ class InstagramScraper(object):
                         content = self.session.get(url).content
                     except requests.exceptions.ConnectionError:
                         time.sleep(5)
-                        content = requests.get(url).content
+                        content = self.session.get(url).content
 
                     media_file.write(content)
 
                 file_time = int(item.get('created_time', item.get('taken_at', item.get('date', time.time()))))
                 os.utime(file_path, (file_time, file_time))
 
+    def query_comments_gen(self, shortcode, end_cursor=''):
+        """Generator for comments."""
+        comments, end_cursor = self.__query_comments(shortcode, end_cursor)
+
+        if comments:
+            try:
+                while True:
+                    for item in comments:
+                        yield item
+
+                    if end_cursor:
+                        comments, end_cursor = self.__query_comments(shortcode, end_cursor)
+                    else:
+                        return
+            except ValueError:
+                self.logger.exception('Failed to query comments for shortcode ' + shortcode)
+
+    def __query_comments(self, shortcode, end_cursor=''):
+        resp = self.session.get(QUERY_COMMENTS.format(shortcode, end_cursor))
+
+        if resp.status_code == 200:
+            obj = json.loads(resp.text)['data']['shortcode_media']
+
+            if obj:
+                obj = obj['edge_media_to_comment']
+                comments = [node['node'] for node in obj['edges']]
+                end_cursor = obj['page_info']['end_cursor']
+                return comments, end_cursor
+            else:
+                return iter([])
+        else:
+            time.sleep(6)
+            return self.__query_comments(shortcode, end_cursor)
+
     @staticmethod
-    def _search(query):
+    def __search(query):
         resp = requests.get(SEARCH_URL.format(query))
         return json.loads(resp.text)
 
     def search_locations(self):
         query = ' '.join(self.usernames)
-        result = self._search(query)
+        result = self.__search(query)
 
         if len(result['places']) == 0:
             raise ValueError("No locations found for query '{0}'".format(query))
@@ -576,6 +616,7 @@ def main():
     parser.add_argument('--tag', action='store_true', default=False, help='Scrape media using a hashtag')
     parser.add_argument('--location', action='store_true', default=False, help='Scrape media using a location-id')
     parser.add_argument('--search-location', action='store_true', default=False, help='Search for locations by name')
+    parser.add_argument('--comments', action='store_true', default=False, help='Save post comments to json file')
 
     args = parser.parse_args()
 

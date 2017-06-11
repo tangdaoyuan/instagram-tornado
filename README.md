@@ -97,6 +97,9 @@ OPTIONS
                     <destination>/<username>.json. Can be combined with --media_types none
                     to only fetch the metadata without downloading the media.
 
+--comments          Saves the comment metadata associated with the posts to 
+                    <destination>/<username>.json. Implicitly includes --media_metadata.
+
 --tag               Scrapes the specified hashtag for media.
 
 --location          Scrapes the specified instagram location-id for media.

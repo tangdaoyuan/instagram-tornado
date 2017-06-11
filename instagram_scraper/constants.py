@@ -79,3 +79,5 @@ QUERY_LOCATION = ' '.join("""
     """.split())
 
 SEARCH_URL = BASE_URL + 'web/search/topsearch/?context=blended&query={0}'
+
+QUERY_COMMENTS = BASE_URL + 'graphql/query/?query_id=17852405266163336&first=100&shortcode={0}&after={1}'
