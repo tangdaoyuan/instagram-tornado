@@ -5,6 +5,7 @@ import argparse
 import codecs
 import errno
 import glob
+from operator import itemgetter
 import json
 import logging.config
 import os
@@ -36,7 +37,8 @@ class InstagramScraper(object):
                             login_user=None, login_pass=None,
                             destination='./', retain_username=False,
                             quiet=False, maximum=0, media_metadata=False, latest=False,
-                            media_types=['image', 'video', 'story'], tag=False, location=False)
+                            media_types=['image', 'video', 'story'], tag=False, location=False,
+                            search_location=False)
 
         allowed_attr = list(default_attr.keys())
         default_attr.update(kwargs)
@@ -472,6 +474,31 @@ class InstagramScraper(object):
                 os.utime(file_path, (file_time, file_time))
 
     @staticmethod
+    def _search(query):
+        resp = requests.get(SEARCH_URL.format(query))
+        return json.loads(resp.text)
+
+    def search_locations(self):
+        query = ' '.join(self.usernames)
+        result = self._search(query)
+
+        if len(result['places']) == 0:
+            raise ValueError("No locations found for query '{0}'".format(query))
+
+        sorted_places = sorted(result['places'], key=itemgetter('position'))
+
+        for item in sorted_places[0:5]:
+            place = item['place']
+            print 'location-id: {0}, title: {1}, subtitle: {2}, city: {3}, lat: {4}, lng: {5}'.format(
+                place['location']['pk'],
+                place['title'],
+                place['subtitle'],
+                place['location']['city'],
+                place['location']['lat'],
+                place['location']['lng']
+            )
+
+    @staticmethod
     def save_json(data, dst='./'):
         """Saves the data to a json file."""
         if data:
@@ -546,7 +573,8 @@ def main():
     parser.add_argument('--media_types', '-t', nargs='+', default=['image', 'video', 'story'], help='Specify media types to scrape')
     parser.add_argument('--latest', action='store_true', default=False, help='Scrape new media since the last scrape')
     parser.add_argument('--tag', action='store_true', default=False, help='Scrape media using a hashtag')
-    parser.add_argument('--location', action='store_true', default=False, help='Scrape media using a location')
+    parser.add_argument('--location', action='store_true', default=False, help='Scrape media using a location-id')
+    parser.add_argument('--search-location', action='store_true', default=False, help='Search for locations by name')
 
     args = parser.parse_args()
 
@@ -579,6 +607,8 @@ def main():
         scraper.scrape_hashtag()
     elif args.location:
         scraper.scrape_location()
+    elif args.search_location:
+        scraper.search_locations()
     else:
         scraper.scrape()
 

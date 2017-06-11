@@ -101,6 +101,9 @@ OPTIONS
 
 --location          Scrapes the specified instagram location-id for media.
 
+--search-location   Search for locations by name. Useful for determining the location-id of 
+                    a specific place.
+
 ```
 
 Develop

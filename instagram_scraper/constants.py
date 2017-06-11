@@ -77,3 +77,5 @@ QUERY_LOCATION = ' '.join("""
         }
     }
     """.split())
+
+SEARCH_URL = BASE_URL + 'web/search/topsearch/?context=blended&query={0}'
