@@ -489,14 +489,14 @@ class InstagramScraper(object):
 
         for item in sorted_places[0:5]:
             place = item['place']
-            print 'location-id: {0}, title: {1}, subtitle: {2}, city: {3}, lat: {4}, lng: {5}'.format(
+            print('location-id: {0}, title: {1}, subtitle: {2}, city: {3}, lat: {4}, lng: {5}'.format(
                 place['location']['pk'],
                 place['title'],
                 place['subtitle'],
                 place['location']['city'],
                 place['location']['lat'],
                 place['location']['lng']
-            )
+            ))
 
     @staticmethod
     def save_json(data, dst='./'):
@@ -539,6 +539,7 @@ class InstagramScraper(object):
     def parse_delimited_str(input):
         """Parse the string input as a list of delimited tokens."""
         return re.findall(r'[^,;\s]+', input)
+
 
 def main():
     parser = argparse.ArgumentParser(
