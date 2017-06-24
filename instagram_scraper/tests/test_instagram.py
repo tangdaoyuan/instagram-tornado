@@ -60,30 +60,11 @@ class InstagramTests(unittest.TestCase):
 
     def test_scrape_hashtag(self):
         with requests_mock.Mocker() as m:
-            m.get(TAGS_URL.format('test'), text=self.response_explore_tags, cookies={'csrftoken': 'token'})
-            m.post(QUERY_URL, [
-                {'text': self.response_query_hashtag_first_page, 'status_code': 200},
-                {'text': self.response_query_hashtag_second_page, 'status_code': 200}
-            ])
-            m.get(VIEW_MEDIA_URL.format('code4'), text=self.response_view_media_video)
-            m.get('https://fake-url.com/video.mp4', text="video")
+            m.get(QUERY_HASHTAG.format(self.scraper.usernames[0], ''), text=self.response_query_hashtag_first_page, status_code=200)
+            m.get(QUERY_HASHTAG.format(self.scraper.usernames[0], 'J0'), text=self.response_query_hashtag_second_page, status_code=200)
+
+            m.get('https://fake-url.com/photo4.jpg', text="image4")
 
             self.scraper.scrape_hashtag()
 
-            self.assertEqual(open(os.path.join(self.test_dir, 'video.mp4')).read(),
-                             "video")
-
-    def test_scrape_location(self):
-        with requests_mock.Mocker() as m:
-            m.get(LOCATIONS_URL.format('test'), text=self.response_explore_location, cookies={'csrftoken': 'token'})
-            m.post(QUERY_URL, [
-                {'text': self.response_query_hashtag_first_page, 'status_code': 200},
-                {'text': self.response_query_hashtag_second_page, 'status_code': 200}
-            ])
-            m.get(VIEW_MEDIA_URL.format('code4'), text=self.response_view_media_video)
-            m.get('https://fake-url.com/video.mp4', text="video")
-
-            self.scraper.scrape_location()
-
-            self.assertEqual(open(os.path.join(self.test_dir, 'video.mp4')).read(),
-                             "video")
+            self.assertEqual(open(os.path.join(self.test_dir, 'photo4.jpg')).read(), "image4")
