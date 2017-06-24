@@ -34,7 +34,7 @@ class InstagramScraper(object):
     """InstagramScraper scrapes and downloads an instagram user's photos and videos"""
     def __init__(self, **kwargs):
         default_attr = dict(username='', usernames=[], filename=None,
-                            login_user=None, login_pass=None,
+                            login_user=None, login_pass=None, login_only=False,
                             destination='./', retain_username=False,
                             quiet=False, maximum=0, media_metadata=False, latest=False,
                             media_types=['image', 'video', 'story'], tag=False, location=False,
@@ -276,6 +276,9 @@ class InstagramScraper(object):
         """Crawls through and downloads user's media"""
         if self.login_user and self.login_pass:
             self.login()
+            if not self.logged_in and self.login_only:
+                self.logger.warning('Fallback anonymous scraping disabled')
+                return
 
         for username in self.usernames:
             self.posts = []
@@ -604,6 +607,7 @@ def main():
     parser.add_argument('--destination', '-d', default='./', help='Download destination')
     parser.add_argument('--login_user', '-u', default=None, help='Instagram login user')
     parser.add_argument('--login_pass', '-p', default=None, help='Instagram login password')
+    parser.add_argument('--login_only', '-l', default=False, action='store_true', help='Disable anonymous fallback if login fails')
     parser.add_argument('--filename', '-f', help='Path to a file containing a list of users to scrape')
     parser.add_argument('--quiet', '-q', default=False, action='store_true', help='Be quiet while scraping')
     parser.add_argument('--maximum', '-m', type=int, default=0, help='Maximum number of items to scrape')
