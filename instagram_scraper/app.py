@@ -48,7 +48,7 @@ class InstagramScraper(object):
                 self.__dict__[key] = kwargs.get(key)
 
         # Set up a file logger
-        self.logger = InstagramScraper.get_logger(level=logging.WARN)
+        self.logger = InstagramScraper.get_logger(level=logging.DEBUG)
 
         self.posts = []
         self.session = requests.Session()
@@ -67,12 +67,16 @@ class InstagramScraper(object):
         login = self.session.post(LOGIN_URL, data=login_data, allow_redirects=True)
         self.session.headers.update({'X-CSRFToken': login.cookies['csrftoken']})
         self.cookies = login.cookies
+        login_text = json.loads(login.text)
 
-        if login.status_code == 200 and json.loads(login.text)['authenticated']:
+        if login_text.get('authenticated') and login.status_code == 200:
             self.logged_in = True
         else:
-            self.logger.exception('Login failed for ' + self.login_user)
-            raise ValueError('Login failed for ' + self.login_user)
+            self.logger.error('Login failed for ' + self.login_user)
+
+            for count, error in enumerate(login_text.get('errors').get('error')):
+                count += 1
+                self.logger.debug('Session error %(count)s: "%(error)s"' % locals())
 
     def logout(self):
         """Logs out of instagram."""
@@ -259,7 +263,7 @@ class InstagramScraper(object):
                     node['urls'] = [json.loads(r.text)['graphql']['shortcode_media']['video_url']]
                     self.extract_tags(node)
                 else:
-                    self.logger.warn('Failed to get video url for ' + query)
+                    self.logger.warning('Failed to get video url for ' + query)
             else:
                 node['urls'] = [self.get_original_image(node['display_url'])]
                 self.extract_tags(node)
@@ -541,10 +545,10 @@ class InstagramScraper(object):
                 json.dump(data, codecs.getwriter('utf-8')(f), indent=4, sort_keys=True, ensure_ascii=False)
 
     @staticmethod
-    def get_logger(level=logging.WARNING, log_file='instagram-scraper.log'):
+    def get_logger(level=logging.DEBUG, log_file='instagram-scraper.log'):
         """Returns a file logger."""
         logger = logging.getLogger(__name__)
-        logger.setLevel(logging.NOTSET)
+        logger.setLevel(level)
 
         handler = logging.FileHandler(log_file, 'w')
         handler.setLevel(level)
