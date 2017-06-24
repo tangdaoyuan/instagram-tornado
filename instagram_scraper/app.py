@@ -38,7 +38,7 @@ class InstagramScraper(object):
                             destination='./', retain_username=False,
                             quiet=False, maximum=0, media_metadata=False, latest=False,
                             media_types=['image', 'video', 'story'], tag=False, location=False,
-                            search_location=False, comments=False)
+                            search_location=False, comments=False, verbose=0)
 
         allowed_attr = list(default_attr.keys())
         default_attr.update(kwargs)
@@ -47,8 +47,8 @@ class InstagramScraper(object):
             if key in allowed_attr:
                 self.__dict__[key] = kwargs.get(key)
 
-        # Set up a file logger
-        self.logger = InstagramScraper.get_logger(level=logging.DEBUG)
+        # Set up a logger
+        self.logger = InstagramScraper.get_logger(level=logging.DEBUG, verbose=default_attr.get('verbose'))
 
         self.posts = []
         self.session = requests.Session()
@@ -548,18 +548,21 @@ class InstagramScraper(object):
                 json.dump(data, codecs.getwriter('utf-8')(f), indent=4, sort_keys=True, ensure_ascii=False)
 
     @staticmethod
-    def get_logger(level=logging.DEBUG, log_file='instagram-scraper.log'):
-        """Returns a file logger."""
+    def get_logger(level=logging.DEBUG, verbose=0):
+        """Returns a logger."""
         logger = logging.getLogger(__name__)
-        logger.setLevel(level)
 
-        handler = logging.FileHandler(log_file, 'w')
-        handler.setLevel(level)
+        fh = logging.FileHandler('instagram-scraper.log', 'w')
+        fh.setFormatter( logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') )
+        fh.setLevel(level)
+        logger.addHandler(fh)
 
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setFormatter( logging.Formatter('%(levelname)s: %(message)s') )
+        sh_lvls = [logging.ERROR, logging.WARNING, logging.INFO]
+        sh.setLevel(sh_lvls[verbose])
+        logger.addHandler(sh)
 
-        logger.addHandler(handler)
         return logger
 
     @staticmethod
@@ -620,6 +623,7 @@ def main():
     parser.add_argument('--location', action='store_true', default=False, help='Scrape media using a location-id')
     parser.add_argument('--search-location', action='store_true', default=False, help='Search for locations by name')
     parser.add_argument('--comments', action='store_true', default=False, help='Save post comments to json file')
+    parser.add_argument('--verbose', '-v', type=int, default=0, help='Logging verbosity level')
 
     args = parser.parse_args()
 
