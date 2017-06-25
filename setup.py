@@ -3,9 +3,7 @@ from setuptools import setup, find_packages
 
 requires = [
     'requests>=1.0.4',
-    'tqdm>=3.8.0',
-    'requests_mock',
-    'nose'
+    'tqdm>=3.8.0'
 ]
 
 if sys.version_info < (3, 2):
