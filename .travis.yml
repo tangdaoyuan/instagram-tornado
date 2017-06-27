@@ -5,6 +5,8 @@ python:
   - "3.4"
   - "3.5"
 # command to install dependencies
-install: "python setup.py develop"
+install:
+  - pip install requests_mock
+  - pip install -e .
 # command to run tests
 script: nosetests
