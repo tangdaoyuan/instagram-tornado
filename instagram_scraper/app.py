@@ -38,7 +38,7 @@ class InstagramScraper(object):
                             destination='./', retain_username=False,
                             quiet=False, maximum=0, media_metadata=False, latest=False,
                             media_types=['image', 'video', 'story'], tag=False, location=False,
-                            search_location=False, comments=False, verbose=0)
+                            search_location=False, comments=False, verbose=0, include_location=False)
 
         allowed_attr = list(default_attr.keys())
         default_attr.update(kwargs)
@@ -172,6 +172,9 @@ class InstagramScraper(object):
 
             dst = self.make_dst_dir(value)
 
+            if self.include_location:
+                media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
             iter = 0
             for item in tqdm.tqdm(media_generator(value), desc='Searching {0} for posts'.format(value), unit=" media",
                                   disable=self.quiet):
@@ -181,10 +184,13 @@ class InstagramScraper(object):
                     future = executor.submit(self.download, item, dst)
                     future_to_item[future] = item
 
+                if self.include_location and 'location' not in item:
+                    media_exec.submit(self.__get_location, item)
+
                 if self.comments:
                     item['comments']['data'] = list(self.query_comments_gen(item['code']))
 
-                if self.media_metadata or self.comments:
+                if self.media_metadata or self.comments or self.include_location:
                     self.posts.append(item)
 
                 iter = iter + 1
@@ -200,7 +206,7 @@ class InstagramScraper(object):
                         self.logger.warning(
                             'Media for {0} at {1} generated an exception: {2}'.format(value, item['urls'], future.exception()))
 
-            if (self.media_metadata or self.comments) and self.posts:
+            if (self.media_metadata or self.comments or self.include_location) and self.posts:
                 self.save_json(self.posts, '{0}/{1}.json'.format(dst, value))
 
     def query_hashtag_gen(self, hashtag):
@@ -237,11 +243,11 @@ class InstagramScraper(object):
 
                 if end_cursor == '':
                     top_posts = payload['edge_' + entity_name + '_to_top_posts']
-                    nodes.extend(self._get_nodes(top_posts, query))
+                    nodes.extend(self._get_nodes(top_posts))
 
                 posts = payload['edge_' + entity_name + '_to_media']
 
-                nodes.extend(self._get_nodes(posts, query))
+                nodes.extend(self._get_nodes(posts))
                 end_cursor = posts['page_info']['end_cursor']
                 return nodes, end_cursor
             else:
@@ -250,20 +256,22 @@ class InstagramScraper(object):
             time.sleep(6)
             return self.__query(url, entity_name, query, end_cursor)
 
-    def _get_nodes(self, container, query):
+    def _get_nodes(self, container):
         nodes = []
 
         for node in container['edges']:
             node = node['node']
 
             if node['is_video']:
-                r = self.session.get(VIEW_MEDIA_URL.format(node['shortcode']))
+                details = self.__get_media_details(node['shortcode'])
 
-                if r.status_code == 200:
-                    node['urls'] = [json.loads(r.text)['graphql']['shortcode_media']['video_url']]
-                    self.extract_tags(node)
-                else:
-                    self.logger.warning('Failed to get video url for ' + query)
+                if details:
+                    node['urls'] = [details['video_url']]
+
+                if self.include_location:
+                    node['location'] = details.get('location')
+
+                self.extract_tags(node)
             else:
                 node['urls'] = [self.get_original_image(node['display_url'])]
                 self.extract_tags(node)
@@ -271,6 +279,21 @@ class InstagramScraper(object):
             nodes.append(node)
 
         return nodes
+
+    def __get_media_details(self, shortcode):
+        resp = self.session.get(VIEW_MEDIA_URL.format(shortcode))
+
+        if resp.status_code == 200:
+            return json.loads(resp.text)['graphql']['shortcode_media']
+        else:
+            self.logger.warning('Failed to get media details for ' + shortcode)
+
+    def __get_location(self, item):
+        code = item.get('shortcode', item.get('code'))
+
+        if code:
+            details = self.__get_media_details(code)
+            item['location'] = details.get('location')
 
     def scrape(self, executor=concurrent.futures.ThreadPoolExecutor(max_workers=10)):
         """Crawls through and downloads user's media"""
@@ -308,7 +331,7 @@ class InstagramScraper(object):
                         self.logger.warning(
                             'Media at {0} generated an exception: {1}'.format(item['urls'], future.exception()))
 
-            if (self.media_metadata or self.comments) and self.posts:
+            if (self.media_metadata or self.comments or self.include_location) and self.posts:
                 self.save_json(self.posts, '{0}/{1}.json'.format(dst, username))
 
         self.logout()
@@ -347,6 +370,9 @@ class InstagramScraper(object):
         if self.media_types == ['story']:
             return
 
+        if self.include_location:
+            media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
         iter = 0
         for item in tqdm.tqdm(self.media_gen(username), desc='Searching {0} for posts'.format(username),
                               unit=' media', disable=self.quiet):
@@ -354,10 +380,13 @@ class InstagramScraper(object):
                 future = executor.submit(self.download, item, dst)
                 future_to_item[future] = item
 
+            if self.include_location:
+                media_exec.submit(self.__get_location, item)
+
             if self.comments:
                 item['comments']['data'] = list(self.query_comments_gen(item['code']))
 
-            if self.media_metadata or self.comments:
+            if self.media_metadata or self.comments or self.include_location:
                 self.posts.append(item)
 
             iter = iter + 1
@@ -620,6 +649,7 @@ def main():
     parser.add_argument('--retain_username', '-n', action='store_true', default=False,
                         help='Creates username subdirectory when destination flag is set')
     parser.add_argument('--media_metadata', action='store_true', default=False, help='Save media metadata to json file')
+    parser.add_argument('--include-location', action='store_true', default=False, help='Include location data when saving media metadata')
     parser.add_argument('--media_types', '-t', nargs='+', default=['image', 'video', 'story'], help='Specify media types to scrape')
     parser.add_argument('--latest', action='store_true', default=False, help='Scrape new media since the last scrape')
     parser.add_argument('--tag', action='store_true', default=False, help='Scrape media using a hashtag')

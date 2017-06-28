@@ -97,6 +97,9 @@ OPTIONS
                     <destination>/<username>.json. Can be combined with --media_types none
                     to only fetch the metadata without downloading the media.
 
+--include-location  Includes location metadata when saving media metadata. 
+                    Implicitly includes --media_metadata.
+
 --comments          Saves the comment metadata associated with the posts to 
                     <destination>/<username>.json. Implicitly includes --media_metadata.
 
