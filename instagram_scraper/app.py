@@ -74,13 +74,14 @@ class InstagramScraper(object):
         else:
             self.logger.error('Login failed for ' + self.login_user)
 
-            if 'challenge_url' in login_text:
-                self.logger.error('Login failed for {0}. Please verify your account at {1}'
-                                  .format(self.login_user, BASE_URL + login_text.get('checkpoint_url')))
-            else:
-                for count, error in enumerate(login_text.get('errors').get('error')):
+            if 'checkpoint_url' in login_text:
+                self.logger.error('Please verify your account at ' + login_text.get('checkpoint_url'))
+            elif 'errors' in login_text:
+                for count, error in enumerate(login_text['errors'].get('error')):
                     count += 1
                     self.logger.debug('Session error %(count)s: "%(error)s"' % locals())
+            else:
+                self.logger.error(json.dumps(login_text, indent=4, ensure_ascii=False))
 
     def logout(self):
         """Logs out of instagram."""
