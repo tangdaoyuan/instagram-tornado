@@ -81,7 +81,7 @@ class InstagramScraper(object):
                     count += 1
                     self.logger.debug('Session error %(count)s: "%(error)s"' % locals())
             else:
-                self.logger.error(json.dumps(login_text, indent=4, ensure_ascii=False))
+                self.logger.error(json.dumps(login_text))
 
     def logout(self):
         """Logs out of instagram."""
@@ -389,7 +389,7 @@ class InstagramScraper(object):
                 media_exec.submit(self.__get_location, item)
 
             if self.comments:
-                item['edge_media_to_comment']['data'] = list(self.query_comments_gen(item['shortcode']))
+                item['comments']['data'] = list(self.query_comments_gen(item['code']))
 
             if self.media_metadata or self.comments or self.include_location:
                 self.posts.append(item)
