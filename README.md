@@ -105,6 +105,8 @@ OPTIONS
 
 --tag               Scrapes the specified hashtag for media.
 
+--filter            Scrapes the specified hashtag within a user's media.
+
 --location          Scrapes the specified instagram location-id for media.
 
 --search-location   Search for a location by name. Useful for determining the location-id of 
