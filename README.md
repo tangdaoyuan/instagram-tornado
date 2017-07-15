@@ -70,21 +70,21 @@ OPTIONS
 ```
 --help -h           Show help message and exit.
 
---login_user  -u    Instagram login user.
+--login-user  -u    Instagram login user.
 
---login_pass  -p    Instagram login password.
+--login-pass  -p    Instagram login password.
 
 --filename    -f    Path to a file containing a list of users to scrape.
 
 --destination -d    Specify the download destination. By default, media will 
                     be downloaded to <current working directory>/<username>.
 
---retain_username -n  Creates a username subdirectory when the destination flag is
+--retain-username -n  Creates a username subdirectory when the destination flag is
                       set.
 
---media_types -t    Specify media types to scrape. Enter as space separated values. 
+--media-types -t    Specify media types to scrape. Enter as space separated values. 
                     Valid values are image, video, story, or none. Stories require
-                    a --login_user and --login_pass to be defined.
+                    a --login-user and --login-pass to be defined.
 
 --latest            Scrape only new media since the last scrape. Uses the last modified
                     time of the latest media item in the destination directory to compare.
@@ -93,15 +93,15 @@ OPTIONS
 
 --maximum     -m    Maximum number of items to scrape.
 
---media_metadata    Saves the media metadata associated with the user's posts to 
-                    <destination>/<username>.json. Can be combined with --media_types none
+--media-metadata    Saves the media metadata associated with the user's posts to 
+                    <destination>/<username>.json. Can be combined with --media-types none
                     to only fetch the metadata without downloading the media.
 
 --include-location  Includes location metadata when saving media metadata. 
-                    Implicitly includes --media_metadata.
+                    Implicitly includes --media-metadata.
 
 --comments          Saves the comment metadata associated with the posts to 
-                    <destination>/<username>.json. Implicitly includes --media_metadata.
+                    <destination>/<username>.json. Implicitly includes --media-metadata.
 
 --tag               Scrapes the specified hashtag for media.
 
