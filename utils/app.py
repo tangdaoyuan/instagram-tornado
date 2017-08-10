@@ -18,7 +18,8 @@ import requests
 import tqdm
 import argparse
 import re
-from tornado.httpclient import AsyncHTTPClient
+import tornado.options
+from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 
 from utils.constants import *
 from tornado import gen
@@ -409,14 +410,15 @@ class InstagramScraper(object):
 
     @gen.coroutine
     def fetch_media_json(self, username, max_id):
-        """Fetches the user's media metadata."""
         url = MEDIA_URL.format(username)
         if max_id is not None:
             url += '?&max_id=' + max_id
-        resp = yield self.client.fetch(url,
-                                       proxy_host="127.0.0.1",
-                                       proxy_port=1087,
-                                       headers={"user_agent": CHROME_WIN_UA})
+
+        request = tornado.httpclient.HTTPRequest(url,
+                                                 proxy_host=tornado.options.options.proxy_host,
+                                                 proxy_port=tornado.options.options.proxy_port,
+                                                 headers={"user_agent": CHROME_WIN_UA})
+        resp = yield self.client.fetch(request)
         if resp.code == 200:
             media = json.loads(resp.body)
 
