@@ -16,6 +16,7 @@ application = tornado.web.Application([(r"^/scraper/*", "controller.scraper_cont
 if __name__ == "__main__":
     try:
         application.listen(tornado.options.options.port)
+	print r"bind address:%d" % tornado.options.options.port
         tornado.ioloop.IOLoop.instance().start()
     except:
         import traceback
