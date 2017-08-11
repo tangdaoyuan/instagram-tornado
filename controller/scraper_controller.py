@@ -15,8 +15,9 @@ class ScraperController(tornado.web.RequestHandler):
 
         if json_data.has_key('username'):
             username = json_data['username']
+            maxId = json_data['max_id'] if json_data.has_key('max_id') else None
             scraper = InstagramScraper(**vars(init_defautl_args(username)))
-            res = yield scraper.scrape(username)
+            res = yield scraper.scrape(maxId)
             self.write(json.dumps(res))
 
     def prepare(self):

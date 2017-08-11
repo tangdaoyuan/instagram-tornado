@@ -312,7 +312,7 @@ class InstagramScraper(object):
             item['location'] = details.get('location')
 
     @gen.coroutine
-    def scrape(self, executor=concurrent.futures.ThreadPoolExecutor(max_workers=10)):
+    def scrape(self, maxId):
         """Crawls through and downloads user's media"""
         if self.login_user and self.login_pass:
             self.login()
@@ -332,7 +332,7 @@ class InstagramScraper(object):
             #     self.get_stories(user)
 
             # Crawls the media and sends it to the executor.
-            medias = yield self.get_media(username)
+            medias = yield self.get_media(username,maxId)
         self.logout()
         raise gen.Return(medias)
 
@@ -351,7 +351,7 @@ class InstagramScraper(object):
             return stories
 
     @gen.coroutine
-    def get_media(self, username):
+    def get_media(self, username, maxId):
         """Scrapes the user's posts for media."""
         if self.media_types == ['story']:
             return
@@ -359,7 +359,7 @@ class InstagramScraper(object):
         if self.include_location:
             media_exec = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-        medias = yield self.media_gen(username)
+        medias = yield self.media_gen(username, maxId)
         print medias
         raise gen.Return(medias)
         # return [item for item in self.media_gen(username)]
@@ -389,22 +389,15 @@ class InstagramScraper(object):
         return []
 
     @gen.coroutine
-    def media_gen(self, username):
+    def media_gen(self, username, maxId):
         try:
             media_lists = []
-            media = yield self.fetch_media_json(username, max_id=None)
-
-            print media
-            while True:
+            media = yield self.fetch_media_json(username, maxId)
+            if self.is_new_media(media['items'][-1]):
                 for item in media['items']:
                     if not self.filter or self.filter & item['tags']:
                         media_lists.append(item)
-
-                if media.get('more_available') and self.is_new_media(media['items'][-1]):
-                    max_id = media['items'][-1]['id']
-                    media = yield self.fetch_media_json(username, max_id)
-                else:
-                    raise gen.Return(media_lists)
+            raise gen.Return(media_lists)
         except ValueError:
             self.logger.exception('Failed to get media for ' + username)
 
